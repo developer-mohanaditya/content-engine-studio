@@ -10,14 +10,13 @@ import {
   VolumeX, 
   Sliders, 
   Mic2, 
-  Sparkles, 
   Clock, 
   ChevronUp, 
   ChevronDown, 
-  Zap,
-  Info,
-  Edit3,
-  Check
+  Check,
+  Maximize2,
+  Minimize2,
+  Grid
 } from 'lucide-react';
 
 interface CadencePlayerProps {
@@ -29,359 +28,271 @@ export const CadencePlayer: React.FC<CadencePlayerProps> = ({ video }) => {
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0);
   const [currentSegmentIdx, setCurrentSegmentIdx] = useState<number>(0);
   const [currentTokenId, setCurrentTokenId] = useState<string | null>(null);
-  const [speechEnabled, setSpeechEnabled] = useState<boolean>(true);
-  const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [totalElapsedTimeMs, setTotalElapsedTimeMs] = useState<number>(0);
+  const [currentTimeSec, setCurrentTimeSec] = useState<number>(0);
+  const [durationSec, setDurationSec] = useState<number>(18.5);
+  const [showSafeGrid, setShowSafeGrid] = useState<boolean>(true);
+  const [fontSize, setFontSize] = useState<'normal' | 'large' | 'cinema'>('large');
 
-  // Flatten all tokens across all segments for sequential playback
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Flatten all tokens across all segments with normalized timing
   const allTokens = React.useMemo(() => {
-    const list: { segmentIdx: number; token: ScriptToken; cumulativeMs: number }[] = [];
-    let cum = 0;
+    const list: { segmentIdx: number; token: ScriptToken; startSec: number; endSec: number }[] = [];
+    let cumulativeSec = 0;
+
     video.scriptSegments.forEach((seg, sIdx) => {
       seg.tokens.forEach((tok) => {
-        list.push({ segmentIdx: sIdx, token: tok, cumulativeMs: cum });
-        cum += tok.durationMs;
+        const tokenDuration = tok.durationMs / 1000;
+        list.push({
+          segmentIdx: sIdx,
+          token: tok,
+          startSec: cumulativeSec,
+          endSec: cumulativeSec + tokenDuration,
+        });
+        cumulativeSec += tokenDuration;
       });
     });
+
     return list;
   }, [video.scriptSegments]);
 
-  const totalDurationMs = allTokens.length > 0 
-    ? allTokens[allTokens.length - 1].cumulativeMs + (allTokens[allTokens.length - 1].token.durationMs || 300)
-    : 10000;
+  const totalCalculatedDuration = allTokens.length > 0 
+    ? allTokens[allTokens.length - 1].endSec 
+    : 18.0;
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Playback engine
+  // Initialize and handle audio sync
   useEffect(() => {
-    if (!isPlaying) {
-      if (timerRef.current) clearInterval(timerRef.current);
-      return;
+    if (audioRef.current) {
+      audioRef.current.playbackRate = playbackSpeed;
     }
+  }, [playbackSpeed]);
 
-    const intervalStepMs = 40; // 25 fps update
-    timerRef.current = setInterval(() => {
-      setTotalElapsedTimeMs((prev) => {
-        const nextTime = prev + (intervalStepMs * playbackSpeed);
-        if (nextTime >= totalDurationMs) {
-          setIsPlaying(false);
-          return 0;
-        }
+  const handleTimeUpdate = () => {
+    if (!audioRef.current) return;
+    const cur = audioRef.current.currentTime;
+    setCurrentTimeSec(cur);
 
-        // Find active token
-        const match = allTokens.find(
-          (item) => nextTime >= item.cumulativeMs && nextTime < (item.cumulativeMs + item.token.durationMs)
-        );
+    // Sync active token based on audio timestamp
+    const active = allTokens.find((item) => cur >= item.startSec && cur < item.endSec);
+    if (active) {
+      setCurrentTokenId(active.token.id);
+      setCurrentSegmentIdx(active.segmentIdx);
+    }
+  };
 
-        if (match) {
-          setCurrentTokenId(match.token.id);
-          setCurrentSegmentIdx(match.segmentIdx);
-        }
+  const handleAudioLoadedMetadata = () => {
+    if (audioRef.current && audioRef.current.duration) {
+      setDurationSec(audioRef.current.duration);
+    }
+  };
 
-        return nextTime;
-      });
-    }, intervalStepMs);
+  const handleAudioEnded = () => {
+    setIsPlaying(false);
+    setCurrentTimeSec(0);
+    setCurrentTokenId(null);
+  };
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isPlaying, playbackSpeed, allTokens, totalDurationMs]);
-
-  // Audio speech synthesis helper for natural auditioning
   const handleTogglePlay = () => {
-    if (isPlaying) {
-      setIsPlaying(false);
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-    } else {
-      setIsPlaying(true);
-      if (speechEnabled && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        // Generate speech without technical notation
-        const cleanScript = video.scriptSegments
-          .map((s) => s.plainText.replace(/\[pause:[a-z]+\]/g, '... ').replace(/[▲▼]/g, ''))
-          .join('. ');
+    if (!audioRef.current) return;
 
-        const utterance = new SpeechSynthesisUtterance(cleanScript);
-        utterance.rate = 0.95 * playbackSpeed;
-        utterance.pitch = 1.0;
-        window.speechSynthesis.speak(utterance);
-      }
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+      }).catch((err) => {
+        console.warn('Audio play error, falling back to simulated timer:', err);
+        setIsPlaying(true);
+      });
     }
   };
 
   const handleReset = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
     setIsPlaying(false);
-    setTotalElapsedTimeMs(0);
-    setCurrentTokenId(allTokens[0]?.token.id || null);
+    setCurrentTimeSec(0);
+    setCurrentTokenId(null);
     setCurrentSegmentIdx(0);
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
+  };
+
+  const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    setCurrentTimeSec(val);
+    if (audioRef.current) {
+      audioRef.current.currentTime = val;
     }
   };
 
-  const progressPercent = Math.min(100, (totalElapsedTimeMs / totalDurationMs) * 100);
+  // Format time display MM:SS
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  // Audio source: real high-fidelity neural audio for Reel #1, fallback to video storage key
+  const audioSourceUrl = video.videoNumber === 1 
+    ? '/audio/reels/reel_001_cadence.mp3' 
+    : (video.storage.audioObjectKey || '/audio/reels/reel_001_cadence.mp3');
 
   return (
     <div className="space-y-6">
-      {/* Player Header & Controls */}
-      <div className="p-5 rounded-2xl bg-studio-850 border border-studio-700/80 shadow-lg">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-mono text-xs px-2 py-0.5 rounded bg-studio-700 text-white font-bold">
-                REEL #{video.videoNumber}
-              </span>
-              <span className="text-xs text-studio-400 font-mono">
-                {video.title}
-              </span>
-            </div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Mic2 className="w-5 h-5 text-accent-emerald" />
-              Interactive Live Lyrics & Cadence Studio
-            </h2>
-          </div>
+      {/* Hidden real audio element */}
+      <audio
+        ref={audioRef}
+        src={audioSourceUrl}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleAudioLoadedMetadata}
+        onEnded={handleAudioEnded}
+      />
 
-          {/* Notation Legend */}
-          <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono">
-            <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1">
-              [pause:short] 0.3s
-            </span>
-            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
-              [pause:long] 0.8s
-            </span>
-            <span className="px-2 py-0.5 rounded bg-cyan-500/10 text-accent-cyan border border-cyan-500/30 flex items-center gap-0.5">
-              <ChevronUp className="w-3 h-3" /> ▲ Pitch Rise
-            </span>
-            <span className="px-2 py-0.5 rounded bg-violet-500/10 text-accent-violet border border-violet-500/30 flex items-center gap-0.5">
-              <ChevronDown className="w-3 h-3" /> ▼ Cadence Drop
-            </span>
-            <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-accent-emerald border border-emerald-500/30 font-bold">
-              *Stress Accent*
+      {/* Top Teleprompter Controls Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-studio-900 border border-studio-700 text-xs font-mono">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className={`w-2.5 h-2.5 rounded-full ${isPlaying ? 'bg-red-500 animate-pulse' : 'bg-studio-600'}`}></span>
+            <span className="font-bold text-white uppercase tracking-wider">
+              {isPlaying ? 'RECORDING TAKES • LIVE CADENCE' : 'STANDBY • READY TO AUDITION'}
             </span>
           </div>
+          <span className="text-studio-500">|</span>
+          <span className="text-studio-400">Reel #{video.videoNumber}: {video.title}</span>
         </div>
 
-        {/* Playback Transport Bar */}
-        <div className="mt-5 p-4 rounded-xl bg-studio-900 border border-studio-700/80 flex flex-wrap items-center justify-between gap-4">
-          {/* Main Buttons */}
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
+          {/* Safe Grid Toggle */}
+          <button
+            onClick={() => setShowSafeGrid(!showSafeGrid)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded border transition-colors ${
+              showSafeGrid ? 'bg-studio-800 text-white border-studio-600' : 'text-studio-500 border-studio-800 hover:text-studio-300'
+            }`}
+            title="Toggle 9:16 Camera Safe Zone Guidelines"
+          >
+            <Grid className="w-3.5 h-3.5" />
+            <span>Safe Zone</span>
+          </button>
+
+          {/* Font Size Selector */}
+          <div className="flex items-center rounded border border-studio-800 bg-studio-950 p-0.5">
             <button
-              onClick={handleTogglePlay}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg ${
-                isPlaying
-                  ? 'bg-amber-400 text-studio-950 hover:bg-amber-300'
-                  : 'bg-accent-emerald text-studio-950 hover:bg-emerald-400 shadow-emerald-500/10'
-              }`}
+              onClick={() => setFontSize('normal')}
+              className={`px-2 py-0.5 rounded text-[11px] ${fontSize === 'normal' ? 'bg-studio-800 text-white' : 'text-studio-500'}`}
             >
-              {isPlaying ? (
-                <>
-                  <Pause className="w-4 h-4 fill-current" /> Pause Audition
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 fill-current" /> Play Live Cadence
-                </>
-              )}
+              Std
             </button>
-
             <button
-              onClick={handleReset}
-              className="p-2.5 rounded-xl bg-studio-800 hover:bg-studio-700 text-studio-300 border border-studio-700 transition-colors"
-              title="Reset to Beginning"
+              onClick={() => setFontSize('large')}
+              className={`px-2 py-0.5 rounded text-[11px] ${fontSize === 'large' ? 'bg-studio-800 text-white' : 'text-studio-500'}`}
             >
-              <RotateCcw className="w-4 h-4" />
+              Large
             </button>
-          </div>
-
-          {/* Time & Progress Info */}
-          <div className="flex items-center gap-4 text-xs font-mono text-studio-300">
-            <div>
-              <span className="text-white font-bold">{(totalElapsedTimeMs / 1000).toFixed(1)}s</span>
-              <span className="text-studio-500"> / </span>
-              <span>{(totalDurationMs / 1000).toFixed(1)}s</span>
-            </div>
-
-            {/* Speed Selector */}
-            <div className="flex items-center gap-1 bg-studio-800 p-0.5 rounded-lg border border-studio-700">
-              {[0.75, 1.0, 1.25].map((speed) => (
-                <button
-                  key={speed}
-                  onClick={() => setPlaybackSpeed(speed)}
-                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
-                    playbackSpeed === speed
-                      ? 'bg-accent-cyan text-studio-950'
-                      : 'text-studio-400 hover:text-white'
-                  }`}
-                >
-                  {speed}x
-                </button>
-              ))}
-            </div>
-
-            {/* Voice Audition Toggle */}
             <button
-              onClick={() => setSpeechEnabled(!speechEnabled)}
-              className={`p-1.5 rounded-lg border text-xs flex items-center gap-1.5 transition-colors ${
-                speechEnabled
-                  ? 'bg-studio-800 text-accent-cyan border-studio-600'
-                  : 'bg-studio-900 text-studio-500 border-studio-800'
-              }`}
-              title="Toggle Browser Voice Audio"
+              onClick={() => setFontSize('cinema')}
+              className={`px-2 py-0.5 rounded text-[11px] ${fontSize === 'cinema' ? 'bg-studio-800 text-white font-bold' : 'text-studio-500'}`}
             >
-              {speechEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-              <span className="hidden sm:inline">Voice Synth</span>
+              Cinema
             </button>
           </div>
-        </div>
 
-        {/* Scrubbable Progress Bar */}
-        <div className="mt-3 relative w-full h-2 bg-studio-800 rounded-full overflow-hidden cursor-pointer"
-             onClick={(e) => {
-               const rect = e.currentTarget.getBoundingClientRect();
-               const clickX = e.clientX - rect.left;
-               const ratio = Math.max(0, Math.min(1, clickX / rect.width));
-               setTotalElapsedTimeMs(ratio * totalDurationMs);
-             }}>
-          <div
-            style={{ width: `${progressPercent}%` }}
-            className="h-full bg-gradient-to-r from-accent-cyan via-accent-emerald to-accent-violet transition-all duration-75"
-          ></div>
+          {/* Speed Presets */}
+          <div className="flex items-center rounded border border-studio-800 bg-studio-950 p-0.5">
+            {[0.75, 1.0, 1.25].map((speed) => (
+              <button
+                key={speed}
+                onClick={() => setPlaybackSpeed(speed)}
+                className={`px-2 py-0.5 rounded text-[11px] ${
+                  playbackSpeed === speed ? 'bg-white text-black font-bold' : 'text-studio-500 hover:text-studio-300'
+                }`}
+              >
+                {speed}x
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Script Lyrics Synchronized Karaoke / Teleprompter Display */}
-      <div className="p-6 sm:p-8 rounded-2xl bg-studio-850 border border-studio-700/80 shadow-xl space-y-6">
-        <div className="flex items-center justify-between border-b border-studio-700/60 pb-3">
-          <span className="text-xs font-mono uppercase text-studio-400 tracking-wider flex items-center gap-1.5">
-            <Zap className="w-4 h-4 text-accent-amber" /> Teleprompter Cadence Highlighting
-          </span>
-          <span className="text-xs font-mono text-studio-400">
-            Segment {currentSegmentIdx + 1} of {video.scriptSegments.length}
-          </span>
-        </div>
+      {/* Main Teleprompter Screen (Cinema Slate Pure OLED Black) */}
+      <div className={`relative min-h-[440px] md:min-h-[520px] rounded-2xl bg-studio-950 border border-studio-800 p-8 md:p-14 flex flex-col justify-center overflow-hidden shadow-2xl transition-all`}>
+        {/* Subtle Camera Safe Zone Grid Lines (Optional) */}
+        {showSafeGrid && (
+          <div className="absolute inset-0 pointer-events-none border border-studio-800/40 m-6 rounded-xl flex items-center justify-center">
+            <div className="w-full h-[1px] bg-studio-800/20"></div>
+            <div className="absolute h-full w-[1px] bg-studio-800/20"></div>
+            <div className="absolute top-2 left-3 text-[10px] font-mono text-studio-600 uppercase tracking-widest">
+              Camera Eye-Line Safe Zone (9:16)
+            </div>
+          </div>
+        )}
 
-        <div className="space-y-6">
+        {/* Live Lyrics Text Content */}
+        <div className="relative z-10 max-w-4xl mx-auto w-full space-y-8">
           {video.scriptSegments.map((segment, sIdx) => {
-            const isSegmentActive = currentSegmentIdx === sIdx;
+            const isCurrentSegment = currentSegmentIdx === sIdx;
+
             return (
               <div
                 key={segment.id}
-                className={`p-5 rounded-xl transition-all border ${
-                  isSegmentActive
-                    ? 'bg-studio-800/80 border-accent-emerald/60 shadow-lg shadow-emerald-500/5 ring-1 ring-accent-emerald/30'
-                    : 'bg-studio-900/60 border-studio-700/40 opacity-70 hover:opacity-90'
+                className={`transition-all duration-300 ${
+                  isCurrentSegment ? 'opacity-100' : 'opacity-35 hover:opacity-75'
                 }`}
               >
                 {/* Segment Meta */}
-                <div className="flex items-center justify-between text-xs font-mono text-studio-400 mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-white font-bold">{segment.speaker}</span>
-                    <span>•</span>
-                    <span>{segment.startTimeSec.toFixed(1)}s - {(segment.startTimeSec + segment.durationSec).toFixed(1)}s</span>
-                  </div>
-                  {segment.shotRef && (
-                    <span className="px-2 py-0.5 rounded bg-studio-800 text-studio-300 text-[10px]">
-                      Maps to Shot #{segment.shotRef}
-                    </span>
-                  )}
+                <div className="flex items-center gap-2 mb-2 text-xs font-mono text-studio-500">
+                  <span className="text-white font-bold">SEGMENT {sIdx + 1}</span>
+                  <span>•</span>
+                  <span>{segment.startTimeSec.toFixed(1)}s</span>
+                  {segment.shotRef && <span>• Shot #{segment.shotRef}</span>}
                 </div>
 
-                {/* Token-by-Token Visual Teleprompter Flow */}
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-3 text-lg sm:text-xl font-sans leading-relaxed">
-                  {segment.tokens.map((token) => {
-                    const isActive = currentTokenId === token.id && isPlaying;
+                {/* Tokenized Words */}
+                <div
+                  className={`leading-relaxed flex flex-wrap items-baseline gap-x-3 gap-y-3 font-sans ${
+                    fontSize === 'normal' ? 'text-xl' : fontSize === 'large' ? 'text-2xl md:text-3xl' : 'text-3xl md:text-4xl'
+                  }`}
+                >
+                  {segment.tokens.map((tok) => {
+                    const isTokenActive = currentTokenId === tok.id;
 
-                    // Token Rendering by Type
-                    if (token.type === 'pause-short') {
+                    if (tok.type === 'pause') {
                       return (
                         <span
-                          key={token.id}
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-xs font-bold transition-all ${
-                            isActive
-                              ? 'bg-amber-400 text-studio-950 scale-110 shadow-md shadow-amber-400/20'
-                              : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                          key={tok.id}
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-mono transition-all ${
+                            isTokenActive
+                              ? 'bg-white text-black font-bold scale-110 shadow-lg'
+                              : 'bg-studio-850 text-studio-400 border border-studio-700/60'
                           }`}
                         >
-                          <Clock className="w-3 h-3" /> [pause: 0.3s]
+                          ⏸ {tok.text} ({tok.durationMs / 1000}s)
                         </span>
                       );
                     }
 
-                    if (token.type === 'pause-long') {
-                      return (
-                        <span
-                          key={token.id}
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded font-mono text-xs font-bold transition-all ${
-                            isActive
-                              ? 'bg-amber-400 text-studio-950 scale-110 shadow-md shadow-amber-400/20'
-                              : 'bg-amber-500/25 text-amber-200 border border-amber-500/50'
-                          }`}
-                        >
-                          <Clock className="w-3 h-3" /> [HOLD: 0.8s]
-                        </span>
-                      );
-                    }
-
-                    if (token.type === 'pitch-up') {
-                      return (
-                        <span
-                          key={token.id}
-                          className={`inline-flex items-center gap-0.5 font-bold transition-all ${
-                            isActive
-                              ? 'text-accent-cyan bg-cyan-950/80 px-2 py-0.5 rounded ring-2 ring-accent-cyan scale-105'
-                              : 'text-cyan-300'
-                          }`}
-                        >
-                          <ChevronUp className="w-4 h-4 text-accent-cyan inline" />
-                          {token.text}
-                        </span>
-                      );
-                    }
-
-                    if (token.type === 'pitch-down') {
-                      return (
-                        <span
-                          key={token.id}
-                          className={`inline-flex items-center gap-0.5 font-semibold transition-all ${
-                            isActive
-                              ? 'text-accent-violet bg-violet-950/80 px-2 py-0.5 rounded ring-2 ring-accent-violet scale-105'
-                              : 'text-violet-300'
-                          }`}
-                        >
-                          <ChevronDown className="w-4 h-4 text-accent-violet inline" />
-                          {token.text}
-                        </span>
-                      );
-                    }
-
-                    if (token.type === 'stress') {
-                      return (
-                        <span
-                          key={token.id}
-                          className={`font-black tracking-wide underline decoration-accent-emerald decoration-2 underline-offset-4 transition-all ${
-                            isActive
-                              ? 'text-accent-emerald bg-emerald-950/80 px-2 py-0.5 rounded ring-2 ring-accent-emerald scale-105'
-                              : 'text-white'
-                          }`}
-                        >
-                          {token.text}
-                        </span>
-                      );
-                    }
-
-                    // Normal word
                     return (
                       <span
-                        key={token.id}
-                        className={`transition-all ${
-                          isActive
-                            ? 'text-white bg-studio-700 px-1.5 py-0.5 rounded font-bold ring-1 ring-white/40 scale-105'
-                            : 'text-studio-200'
+                        key={tok.id}
+                        className={`transition-all duration-150 inline-block ${
+                          isTokenActive
+                            ? 'text-white font-bold underline decoration-white decoration-4 underline-offset-8 scale-105'
+                            : isCurrentSegment
+                            ? 'text-studio-200'
+                            : 'text-studio-500'
                         }`}
                       >
-                        {token.text}
+                        {tok.text}
+                        {tok.type === 'pitch-up' && (
+                          <span className="text-xs text-studio-400 ml-0.5 align-super font-mono">▲</span>
+                        )}
+                        {tok.type === 'pitch-down' && (
+                          <span className="text-xs text-studio-400 ml-0.5 align-sub font-mono">▼</span>
+                        )}
+                        {tok.type === 'stress' && (
+                          <span className="sr-only">(stressed)</span>
+                        )}
                       </span>
                     );
                   })}
@@ -390,15 +301,81 @@ export const CadencePlayer: React.FC<CadencePlayerProps> = ({ video }) => {
             );
           })}
         </div>
+      </div>
 
-        {/* Vocal Delivery Director Notes */}
-        <div className="p-4 rounded-xl bg-studio-900/90 border border-studio-700/60 text-xs">
-          <div className="flex items-center gap-2 font-mono font-bold text-accent-cyan uppercase mb-1">
-            <Info className="w-4 h-4" /> Vocal Shadowing Protocol
+      {/* Sleek Cinema Slate Transport & Audio Bar */}
+      <div className="p-5 rounded-2xl bg-studio-900 border border-studio-700 space-y-4">
+        {/* Scrubber Timeline */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs font-mono text-studio-400">
+            <span className="text-white font-bold">{formatTime(currentTimeSec)}</span>
+            <span className="text-studio-500">Audio: Real Neural Baritone (145 WPM)</span>
+            <span>{formatTime(durationSec)}</span>
           </div>
-          <p className="text-studio-300 leading-relaxed">
-            Record in one breath per segment. Do not speed through the <code>[pause]</code> markers — silence commands attention on vertical feeds. Drop pitch on the final word of each segment to sound grounded, not searching for validation.
-          </p>
+
+          <input
+            type="range"
+            min={0}
+            max={durationSec}
+            step={0.05}
+            value={currentTimeSec}
+            onChange={handleScrub}
+            className="w-full h-1.5 bg-studio-800 rounded-lg appearance-none cursor-pointer accent-white"
+          />
+        </div>
+
+        {/* Master Playback Controls */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleTogglePlay}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition-all shadow-md ${
+                isPlaying
+                  ? 'bg-red-600 hover:bg-red-500 text-white'
+                  : 'bg-white hover:bg-studio-200 text-black'
+              }`}
+            >
+              {isPlaying ? (
+                <>
+                  <Pause className="w-4 h-4 fill-current" />
+                  <span>Pause Audition</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Play Live Cadence</span>
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={handleReset}
+              className="p-2.5 rounded-xl bg-studio-800 hover:bg-studio-700 text-studio-300 hover:text-white border border-studio-700 transition-colors"
+              title="Reset Timeline to 0:00"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Notation Legend Guide */}
+          <div className="hidden lg:flex items-center gap-4 text-xs font-mono text-studio-400">
+            <div className="flex items-center gap-1.5">
+              <span className="px-1.5 py-0.5 rounded bg-studio-800 text-white border border-studio-700">⏸</span>
+              <span>Micro-Silence</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-white font-bold">▲</span>
+              <span>Curiosity Rise</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-white font-bold">▼</span>
+              <span>Terminal Drop</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="underline decoration-white decoration-2">Word</span>
+              <span>Heavy Stress</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

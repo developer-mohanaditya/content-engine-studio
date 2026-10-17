@@ -9,12 +9,7 @@ import {
   Activity, 
   Camera, 
   Clock, 
-  TrendingUp, 
-  Volume2, 
-  ChevronUp, 
-  ChevronDown, 
   ShieldCheck, 
-  Sparkles,
   Target
 } from 'lucide-react';
 
@@ -27,35 +22,35 @@ export const BenchmarksView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="p-6 rounded-2xl bg-studio-850 border border-studio-700/80 shadow-lg">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="p-6 rounded-xl bg-studio-900 border border-studio-800">
+        <div className="flex flex-wrap items-center justify-between gap-4 font-mono">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-mono text-xs px-2 py-0.5 rounded bg-pink-500/10 text-pink-400 border border-pink-500/30 font-bold flex items-center gap-1">
+              <span className="text-xs px-2 py-0.5 rounded bg-studio-800 text-white font-bold border border-studio-700">
                 Verified Instagram Creators
               </span>
-              <span className="text-xs text-studio-400 font-mono">
-                Peer Benchmarking & Vocal Shadowing Engine
+              <span className="text-xs text-studio-500">
+                Vocal Cadence Benchmarking
               </span>
             </div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <Users className="w-5 h-5 text-accent-cyan" />
-              Creator Vocal Cadence & Physical Shadowing Benchmarks
+            <h2 className="text-lg font-bold text-white flex items-center gap-2 font-mono">
+              <Users className="w-4 h-4 text-white" />
+              Creator Vocal Cadence & Physical Shadowing
             </h2>
-            <p className="mt-1 text-xs text-studio-400">
-              Deconstructed cadence metrics, timing pauses, pitch curves, and physical blocking patterns to study and mirror across your 60% Tech / 40% Journal reels.
+            <p className="mt-1 text-xs text-studio-400 font-sans">
+              Deconstructed cadence metrics, timing pauses, pitch curves, and physical blocking patterns to mirror across your 60% Tech / 40% Journal reels.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-studio-900 border border-studio-700 text-xs font-mono">
-            <span className="w-2 h-2 rounded-full bg-accent-emerald animate-pulse"></span>
-            <span className="text-studio-200">5 Verified Creators Analyzed</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-studio-950 border border-studio-800 text-xs">
+            <span className="w-2 h-2 rounded-full bg-white"></span>
+            <span className="text-white">5 Verified Creators</span>
           </div>
         </div>
       </div>
 
       {/* Creator Selector Pills */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 font-mono">
         {INSTAGRAM_BENCHMARKS.map((creator) => {
           const isSelected = creator.id === selectedCreator.id;
           return (
@@ -64,128 +59,156 @@ export const BenchmarksView: React.FC = () => {
               onClick={() => setSelectedCreatorId(creator.id)}
               className={`p-3.5 rounded-xl text-left transition-all border ${
                 isSelected
-                  ? 'bg-studio-800 border-accent-cyan shadow-md shadow-cyan-500/10 ring-1 ring-accent-cyan/40'
-                  : 'bg-studio-850 hover:bg-studio-800/60 border-studio-700/60'
+                  ? 'bg-studio-850 border-white text-white shadow-lg'
+                  : 'bg-studio-900 hover:bg-studio-850 border-studio-800 text-studio-400'
               }`}
             >
-              <div className="text-xs font-bold text-white">{creator.name}</div>
-              <div className="text-[11px] font-mono text-accent-cyan mt-0.5">{creator.instagramHandle}</div>
-              <div className="mt-2 text-[10px] font-mono text-studio-400 flex items-center justify-between">
-                <span>{creator.metrics.wpm} WPM</span>
-                <span>{creator.metrics.averagePauseMs}ms pause</span>
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <span className="font-bold text-xs truncate text-white">{creator.name}</span>
+                <span className="text-[10px] text-studio-500">{creator.vocalCadence.avgWPM} WPM</span>
+              </div>
+              <div className="text-[11px] text-studio-500 mb-1.5 truncate">
+                {creator.instagramHandle}
+              </div>
+              <div className="text-[10px] px-1.5 py-0.5 rounded bg-studio-950 border border-studio-800 text-studio-400 truncate">
+                {creator.nichePillar}
               </div>
             </button>
           );
         })}
       </div>
 
-      {/* Active Creator Deep Dive Breakdown */}
-      <div className="p-6 rounded-2xl bg-studio-850 border border-studio-700/80 shadow-lg space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-studio-700/60 pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-xl font-black text-white">{selectedCreator.name}</h3>
+      {/* Active Creator Deconstruction Details */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Vocal Cadence Profile */}
+        <div className="lg:col-span-6 space-y-4">
+          <div className="p-6 rounded-xl bg-studio-900 border border-studio-800 space-y-5">
+            <div className="flex items-center justify-between border-b border-studio-800 pb-3 font-mono">
+              <div className="flex items-center gap-2">
+                <Mic2 className="w-4 h-4 text-white" />
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                  Vocal Cadence & Speech Architecture
+                </h3>
+              </div>
               <a
-                href={`https://www.instagram.com/${selectedCreator.instagramHandle.replace('@', '')}/`}
+                href={`https://instagram.com/${selectedCreator.instagramHandle.replace('@', '')}`}
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs font-mono text-pink-400 hover:text-pink-300 flex items-center gap-1 bg-pink-950/40 px-2 py-0.5 rounded border border-pink-800/40"
+                className="flex items-center gap-1 text-xs text-studio-400 hover:text-white"
               >
-                {selectedCreator.instagramHandle}
+                <span>Profile</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>
-            <p className="mt-1 text-xs text-studio-300">
-              Niche Focus: <span className="text-white font-medium">{selectedCreator.niche}</span> • Primary Style: <span className="text-accent-cyan font-mono">{selectedCreator.primaryFormat}</span>
-            </p>
-          </div>
 
-          {/* Quick Metrics Badge */}
-          <div className="flex items-center gap-2 bg-studio-900 p-1.5 rounded-xl border border-studio-700 text-xs font-mono">
-            <div className="px-3 py-1 rounded-lg bg-studio-800 text-center">
-              <span className="block text-[10px] text-studio-400">Tempo</span>
-              <span className="text-accent-emerald font-bold">{selectedCreator.metrics.wpm} WPM</span>
-            </div>
-            <div className="px-3 py-1 rounded-lg bg-studio-800 text-center">
-              <span className="block text-[10px] text-studio-400">Micro-Pause</span>
-              <span className="text-accent-amber font-bold">{selectedCreator.metrics.averagePauseMs}ms</span>
-            </div>
-            <div className="px-3 py-1 rounded-lg bg-studio-800 text-center">
-              <span className="block text-[10px] text-studio-400">Hook Window</span>
-              <span className="text-accent-cyan font-bold">{selectedCreator.metrics.hookDeliverySpeedSec}s</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 2-Column Cadence & Physical Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Column 1: Vocal Cadence Anatomy */}
-          <div className="p-5 rounded-xl bg-studio-900/90 border border-studio-700/60 space-y-4">
-            <h4 className="text-xs font-bold text-accent-cyan font-mono uppercase tracking-wider flex items-center gap-2">
-              <Mic2 className="w-4 h-4" /> Vocal Cadence Anatomy
-            </h4>
-
-            <div className="space-y-3 text-xs">
-              <div className="p-3 rounded-lg bg-studio-850 border border-studio-700/40">
-                <span className="text-[10px] font-mono text-studio-400 uppercase block mb-1">Opening Hook Pattern</span>
-                <p className="text-studio-200">{selectedCreator.vocalCadenceDeconstruction.openingPattern}</p>
+            {/* Cadence Metrics Strip */}
+            <div className="grid grid-cols-3 gap-3 font-mono text-center">
+              <div className="p-3 rounded-lg bg-studio-950 border border-studio-800">
+                <div className="text-[10px] text-studio-500 uppercase">Speed / WPM</div>
+                <div className="text-xl font-bold text-white mt-1">
+                  {selectedCreator.vocalCadence.avgWPM}
+                </div>
+                <div className="text-[10px] text-studio-500 mt-0.5">Words/Min</div>
               </div>
 
-              <div className="p-3 rounded-lg bg-studio-850 border border-studio-700/40">
-                <span className="text-[10px] font-mono text-studio-400 uppercase block mb-1">Strategic Silence & Pauses</span>
-                <p className="text-studio-200">{selectedCreator.vocalCadenceDeconstruction.pauseStrategy}</p>
+              <div className="p-3 rounded-lg bg-studio-950 border border-studio-800">
+                <div className="text-[10px] text-studio-500 uppercase">Micro-Pause</div>
+                <div className="text-xl font-bold text-white mt-1">
+                  {selectedCreator.vocalCadence.pauseIntervalMs}
+                </div>
+                <div className="text-[10px] text-studio-500 mt-0.5">Milliseconds</div>
               </div>
 
-              <div className="p-3 rounded-lg bg-studio-850 border border-studio-700/40">
-                <span className="text-[10px] font-mono text-studio-400 uppercase block mb-1">Word Stress Accent Rule</span>
-                <p className="text-studio-200">{selectedCreator.vocalCadenceDeconstruction.stressPattern}</p>
-              </div>
-
-              <div className="p-3 rounded-lg bg-studio-850 border border-studio-700/40">
-                <span className="text-[10px] font-mono text-studio-400 uppercase block mb-1">Cadence Pitch Fall (Downward Inflection)</span>
-                <p className="text-studio-200">{selectedCreator.vocalCadenceDeconstruction.endingDrop}</p>
+              <div className="p-3 rounded-lg bg-studio-950 border border-studio-800">
+                <div className="text-[10px] text-studio-500 uppercase">Tone Register</div>
+                <div className="text-xs font-bold text-white mt-2 truncate">
+                  {selectedCreator.vocalCadence.pitchContour.split(' ')[0]}
+                </div>
+                <div className="text-[10px] text-studio-500 mt-0.5">Register</div>
               </div>
             </div>
-          </div>
 
-          {/* Column 2: Physical Blocking & Studio Rigging */}
-          <div className="p-5 rounded-xl bg-studio-900/90 border border-studio-700/60 space-y-4">
-            <h4 className="text-xs font-bold text-accent-violet font-mono uppercase tracking-wider flex items-center gap-2">
-              <Camera className="w-4 h-4" /> Physical Blocking & Body Language
-            </h4>
-
-            <div className="space-y-3 text-xs">
-              <div className="p-3 rounded-lg bg-studio-850 border border-studio-700/40">
-                <span className="text-[10px] font-mono text-studio-400 uppercase block mb-1">Camera Distance & Optics</span>
-                <p className="text-studio-200">{selectedCreator.physicalBlockingCues.cameraSetup}</p>
+            {/* Vocal Breakdown Details */}
+            <div className="space-y-3 font-mono text-xs">
+              <div className="space-y-1">
+                <div className="text-studio-500 uppercase">Pitch & Tone Contour</div>
+                <div className="p-3 rounded bg-studio-950 border border-studio-800 font-sans text-studio-200 leading-relaxed">
+                  {selectedCreator.vocalCadence.pitchContour}
+                </div>
               </div>
 
-              <div className="p-3 rounded-lg bg-studio-850 border border-studio-700/40">
-                <span className="text-[10px] font-mono text-studio-400 uppercase block mb-1">Gaze & Eye Contact Management</span>
-                <p className="text-studio-200">{selectedCreator.physicalBlockingCues.gazeAngle}</p>
+              <div className="space-y-1">
+                <div className="text-studio-500 uppercase">Emphasis & Syllable Dynamics</div>
+                <div className="p-3 rounded bg-studio-950 border border-studio-800 font-sans text-studio-200 leading-relaxed">
+                  {selectedCreator.vocalCadence.emphasisPattern}
+                </div>
               </div>
 
-              <div className="p-3 rounded-lg bg-studio-850 border border-studio-700/40">
-                <span className="text-[10px] font-mono text-studio-400 uppercase block mb-1">Hand & Spatial Gestures</span>
-                <p className="text-studio-200">{selectedCreator.physicalBlockingCues.handGestures}</p>
-              </div>
-
-              <div className="p-3 rounded-lg bg-studio-850 border border-studio-700/40">
-                <span className="text-[10px] font-mono text-studio-400 uppercase block mb-1">Psychological Energy Transfer</span>
-                <p className="text-studio-200">{selectedCreator.physicalBlockingCues.energyTransfer}</p>
+              <div className="space-y-1">
+                <div className="text-studio-500 uppercase">Breathing & Silent Micro-Pauses</div>
+                <div className="p-3 rounded bg-studio-950 border border-studio-800 font-sans text-studio-200 leading-relaxed">
+                  {selectedCreator.vocalCadence.breathingCues}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Superego Tactical Application Card for Mohan */}
-        <div className="p-4 rounded-xl bg-studio-900 border border-studio-700/90 space-y-2">
-          <div className="flex items-center gap-2 font-mono text-xs font-bold text-accent-emerald uppercase">
-            <Target className="w-4 h-4" /> Tactical Application For Mohan Aditya Sadhanala
+        {/* Right Column: Physical & Visual Blocking Patterns */}
+        <div className="lg:col-span-6 space-y-4">
+          <div className="p-6 rounded-xl bg-studio-900 border border-studio-800 space-y-5">
+            <div className="flex items-center justify-between border-b border-studio-800 pb-3 font-mono">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-white" />
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                  Physical Blocking & Framing
+                </h3>
+              </div>
+              <span className="text-xs text-studio-500 font-mono">Camera Language</span>
+            </div>
+
+            {/* Physical Blocking Details */}
+            <div className="space-y-3 font-mono text-xs">
+              <div className="space-y-1">
+                <div className="text-studio-500 uppercase">Camera Rigging & Lens Angle</div>
+                <div className="p-3 rounded bg-studio-950 border border-studio-800 font-sans text-studio-200 leading-relaxed">
+                  {selectedCreator.physicalBlocking.cameraFraming}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-studio-500 uppercase">Eye-Line & Gaze Dynamics</div>
+                <div className="p-3 rounded bg-studio-950 border border-studio-800 font-sans text-studio-200 leading-relaxed">
+                  {selectedCreator.physicalBlocking.eyeLine}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-studio-500 uppercase">Hand Gestures & Pacing Movement</div>
+                <div className="p-3 rounded bg-studio-950 border border-studio-800 font-sans text-studio-200 leading-relaxed">
+                  {selectedCreator.physicalBlocking.handGestures}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-studio-500 uppercase">Cut Pacing & Screen B-Roll Frequency</div>
+                <div className="p-3 rounded bg-studio-950 border border-studio-800 font-sans text-studio-200 leading-relaxed">
+                  {selectedCreator.physicalBlocking.cutFrequency}
+                </div>
+              </div>
+            </div>
+
+            {/* Actionable Shadowing Rule */}
+            <div className="p-4 rounded-lg bg-studio-950 border border-studio-800 space-y-1 font-mono">
+              <div className="text-xs text-white font-bold flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5" />
+                Actionable Shadowing Rule for Mohan
+              </div>
+              <p className="text-xs text-studio-300 font-sans leading-relaxed">
+                {selectedCreator.shadowingTip}
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-studio-200 leading-relaxed font-sans">
-            {selectedCreator.tacticalApplicationForMohan}
-          </p>
         </div>
       </div>
     </div>

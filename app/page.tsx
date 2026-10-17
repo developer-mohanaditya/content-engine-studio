@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Header } from '@/components/Header';
+import { Header, StudioTab } from '@/components/Header';
 import { CalendarView } from '@/components/CalendarView';
 import { VideoDetailView } from '@/components/VideoDetailView';
 import { StoryboardView } from '@/components/StoryboardView';
 import { CadencePlayer } from '@/components/CadencePlayer';
+import { BenchmarksView } from '@/components/BenchmarksView';
 import { R2StorageView } from '@/components/R2StorageView';
 import { AddVideoModal } from '@/components/AddVideoModal';
 import { INITIAL_VIDEOS } from '@/lib/sample-data';
@@ -14,7 +15,7 @@ import { VideoItem, VideoStatus } from '@/types/content';
 export default function ContentEngineStudioPage() {
   const [videos, setVideos] = useState<VideoItem[]>(INITIAL_VIDEOS);
   const [selectedVideoId, setSelectedVideoId] = useState<string>('VID-001');
-  const [activeTab, setActiveTab] = useState<'calendar' | 'storyboard' | 'cadence' | 'storage'>('calendar');
+  const [activeTab, setActiveTab] = useState<StudioTab>('calendar');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const selectedVideo = videos.find((v) => v.id === selectedVideoId) || videos[0];
@@ -143,6 +144,10 @@ export default function ContentEngineStudioPage() {
           <CadencePlayer
             video={selectedVideo}
           />
+        )}
+
+        {activeTab === 'benchmarks' && (
+          <BenchmarksView />
         )}
 
         {activeTab === 'storage' && (

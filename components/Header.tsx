@@ -7,15 +7,17 @@ import {
   Film, 
   Mic2, 
   Cloud, 
-  ExternalLink, 
+  Users,
   ShieldCheck, 
   Sparkles,
   Layers
 } from 'lucide-react';
 
+export type StudioTab = 'calendar' | 'storyboard' | 'cadence' | 'benchmarks' | 'storage';
+
 interface HeaderProps {
-  activeTab: 'calendar' | 'storyboard' | 'cadence' | 'storage';
-  setActiveTab: (tab: 'calendar' | 'storyboard' | 'cadence' | 'storage') => void;
+  activeTab: StudioTab;
+  setActiveTab: (tab: StudioTab) => void;
   selectedVideoNumber: number;
   totalVideos: number;
 }
@@ -61,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Calendar className="w-3.5 h-3.5 text-accent-amber" />
-              Calendar & Pipeline
+              Pipeline
             </button>
 
             <button
@@ -73,10 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Film className="w-3.5 h-3.5 text-accent-cyan" />
-              Storyboard Studio
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-studio-800 text-studio-300">
-                #{selectedVideoNumber}
-              </span>
+              Storyboard #{selectedVideoNumber}
             </button>
 
             <button
@@ -88,7 +87,19 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Mic2 className="w-3.5 h-3.5 text-accent-emerald" />
-              Lyrics Cadence Player
+              Lyrics Player
+            </button>
+
+            <button
+              onClick={() => setActiveTab('benchmarks')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                activeTab === 'benchmarks'
+                  ? 'bg-studio-700 text-white shadow-sm'
+                  : 'text-studio-400 hover:text-studio-200 hover:bg-studio-800'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5 text-pink-400" />
+              Benchmarks
             </button>
 
             <button
@@ -100,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Cloud className="w-3.5 h-3.5 text-accent-violet" />
-              Cloudflare R2
+              R2 Storage
             </button>
           </nav>
 
@@ -122,27 +133,33 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="md:hidden flex items-center justify-around border-t border-studio-700/40 bg-studio-900 px-2 py-2">
         <button
           onClick={() => setActiveTab('calendar')}
-          className={`px-2.5 py-1 text-xs rounded-md ${activeTab === 'calendar' ? 'bg-studio-700 text-white' : 'text-studio-400'}`}
+          className={`px-2 py-1 text-xs rounded-md ${activeTab === 'calendar' ? 'bg-studio-700 text-white' : 'text-studio-400'}`}
         >
-          Calendar
+          Pipeline
         </button>
         <button
           onClick={() => setActiveTab('storyboard')}
-          className={`px-2.5 py-1 text-xs rounded-md ${activeTab === 'storyboard' ? 'bg-studio-700 text-white' : 'text-studio-400'}`}
+          className={`px-2 py-1 text-xs rounded-md ${activeTab === 'storyboard' ? 'bg-studio-700 text-white' : 'text-studio-400'}`}
         >
           Storyboard
         </button>
         <button
           onClick={() => setActiveTab('cadence')}
-          className={`px-2.5 py-1 text-xs rounded-md ${activeTab === 'cadence' ? 'bg-studio-700 text-white' : 'text-studio-400'}`}
+          className={`px-2 py-1 text-xs rounded-md ${activeTab === 'cadence' ? 'bg-studio-700 text-white' : 'text-studio-400'}`}
         >
           Cadence
         </button>
         <button
-          onClick={() => setActiveTab('storage')}
-          className={`px-2.5 py-1 text-xs rounded-md ${activeTab === 'storage' ? 'bg-studio-700 text-white' : 'text-studio-400'}`}
+          onClick={() => setActiveTab('benchmarks')}
+          className={`px-2 py-1 text-xs rounded-md ${activeTab === 'benchmarks' ? 'bg-studio-700 text-white' : 'text-studio-400'}`}
         >
-          R2 Cloud
+          Benchmarks
+        </button>
+        <button
+          onClick={() => setActiveTab('storage')}
+          className={`px-2 py-1 text-xs rounded-md ${activeTab === 'storage' ? 'bg-studio-700 text-white' : 'text-studio-400'}`}
+        >
+          R2
         </button>
       </div>
     </header>

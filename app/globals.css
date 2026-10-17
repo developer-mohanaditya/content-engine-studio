@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #090A0F;
+  --foreground: #F0F4FA;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0E1117;
+}
+::-webkit-scrollbar-thumb {
+  background: #2A3347;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #404E6B;
+}
+
+/* Studio subtle glow */
+.studio-glow {
+  box-shadow: 0 0 25px -5px rgba(0, 242, 254, 0.15);
+}
+
+.studio-glow-emerald {
+  box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.2);
+}
+
+.studio-border-gradient {
+  border-image: linear-gradient(to bottom, #2A3347, #141822) 1;
+}
+
+/* Teleprompter word active animation */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.92; transform: scale(1.02); }
+}
+
+.token-active {
+  animation: pulse-subtle 0.6s infinite ease-in-out;
+}

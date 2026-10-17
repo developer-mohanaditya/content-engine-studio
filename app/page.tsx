@@ -9,13 +9,15 @@ import { CadencePlayer } from '@/components/CadencePlayer';
 import { BenchmarksView } from '@/components/BenchmarksView';
 import { R2StorageView } from '@/components/R2StorageView';
 import { AddVideoModal } from '@/components/AddVideoModal';
+import { LiteStudioView } from '@/components/LiteStudioView';
 import { INITIAL_VIDEOS } from '@/lib/sample-data';
 import { VideoItem, VideoStatus } from '@/types/content';
 
 export default function ContentEngineStudioPage() {
   const [videos, setVideos] = useState<VideoItem[]>(INITIAL_VIDEOS);
   const [selectedVideoId, setSelectedVideoId] = useState<string>('VID-001');
-  const [activeTab, setActiveTab] = useState<StudioTab>('calendar');
+  const [activeTab, setActiveTab] = useState<StudioTab>('cadence');
+  const [isLiteMode, setIsLiteMode] = useState<boolean>(true); // Default to distraction-free Lite Mode
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const selectedVideo = videos.find((v) => v.id === selectedVideoId) || videos[0];
@@ -51,20 +53,19 @@ export default function ContentEngineStudioPage() {
       multiShotBreakdown: [
         {
           shotNumber: 1,
-          shotType: 'Close-Up',
-          cameraAngle: 'Eye-level 50mm',
-          framingAction: 'Subject looks into camera to deliver hook',
+          cameraFraming: 'Close-Up',
+          visualAction: 'Subject looks into camera to deliver hook',
           durationSec: 3.0,
-          visualCue: 'Cold ambient lighting with screen reflection.',
-          accentColor: '#00F2FE'
+          vocalCue: data.hook?.text || 'Opening line',
+          onScreenText: 'HOOK CUE'
         }
       ],
       continuousBlocking: {
-        framing: 'Vertical 9:16 stationary take',
-        cameraPosition: 'Desk mount 60cm distance',
-        lightingNotes: 'Single soft key light',
-        audioGear: 'Directional USB mic',
-        movementCues: []
+        cameraSetup: 'Vertical 9:16 stationary take',
+        lighting: 'Single soft key light',
+        movementTimeline: [
+          { timestampSec: 0, action: 'Direct gaze into lens', gazeDirection: 'Direct lens' }
+        ]
       },
       scriptSegments: [
         {
@@ -94,14 +95,28 @@ export default function ContentEngineStudioPage() {
     setSelectedVideoId(newVid.id);
   };
 
+  // If in Lite Mode, render the distraction-free single-screen prompter
+  if (isLiteMode) {
+    return (
+      <LiteStudioView
+        videos={videos}
+        currentVideo={selectedVideo}
+        onSelectVideo={(v) => setSelectedVideoId(v.id)}
+        onExitLiteMode={() => setIsLiteMode(false)}
+      />
+    );
+  }
+
+  // Full Studio Mode
   return (
-    <div className="min-h-screen bg-studio-900 text-studio-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-studio-950 text-white flex flex-col font-sans">
       {/* Top Header */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         selectedVideoNumber={selectedVideo.videoNumber}
         totalVideos={videos.length}
+        onEnterLiteMode={() => setIsLiteMode(true)}
       />
 
       {/* Main Content Area */}
@@ -157,18 +172,14 @@ export default function ContentEngineStudioPage() {
         )}
       </main>
 
-      {/* Modal */}
-      <AddVideoModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSave={handleAddNewVideo}
-        nextNumber={videos.length + 1}
-      />
-
-      {/* Footer */}
-      <footer className="border-t border-studio-800/80 bg-studio-900 py-4 text-center text-xs font-mono text-studio-500">
-        Content Engine Studio • Target: content.aweditya.com • Designed for Mohan Aditya Sadhanala (@developer-mohanaditya)
-      </footer>
+      {/* Propose Video Modal */}
+      {isAddModalOpen && (
+        <AddVideoModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onAdd={handleAddNewVideo}
+        />
+      )}
     </div>
   );
 }

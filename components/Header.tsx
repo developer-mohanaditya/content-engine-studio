@@ -7,7 +7,8 @@ import {
   Film, 
   Mic2, 
   Cloud, 
-  Users
+  Users,
+  Sparkles
 } from 'lucide-react';
 
 export type StudioTab = 'calendar' | 'storyboard' | 'cadence' | 'benchmarks' | 'storage';
@@ -17,13 +18,15 @@ interface HeaderProps {
   setActiveTab: (tab: StudioTab) => void;
   selectedVideoNumber: number;
   totalVideos: number;
+  onEnterLiteMode: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   selectedVideoNumber,
-  totalVideos
+  totalVideos,
+  onEnterLiteMode,
 }) => {
   return (
     <header className="border-b border-studio-800 bg-studio-950 sticky top-0 z-50">
@@ -37,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-sm tracking-tight text-white uppercase font-mono">Content Engine Studio</span>
-                <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-studio-800 text-studio-400 border border-studio-700">Slate v1.1</span>
+                <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-studio-800 text-studio-400 border border-studio-700">Slate v1.2</span>
               </div>
               <div className="flex items-center gap-2 text-xs text-studio-500 font-mono">
                 <span className="text-white font-medium">content.aweditya.com</span>
@@ -110,18 +113,28 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </nav>
 
-          {/* Right Pillar Indicator */}
+          {/* Right Action: Lite Mode Switcher */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-xs text-studio-400 font-mono bg-studio-900 px-3 py-1.5 rounded border border-studio-800">
-              <span className="w-2 h-2 rounded-full bg-white"></span>
-              <span><strong className="text-white">60%</strong> Tech / <strong className="text-white">40%</strong> Journal</span>
-            </div>
+            <button
+              onClick={onEnterLiteMode}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-studio-800 hover:bg-white hover:text-black text-white text-xs font-mono font-bold border border-studio-700 transition-all shadow-sm"
+              title="Open Distraction-Free Rehearsal Prompter with Light/Dark theme"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Studio Lite</span>
+            </button>
           </div>
         </div>
       </div>
 
       {/* Mobile Tab Bar */}
       <div className="md:hidden flex items-center justify-around border-t border-studio-800 bg-studio-950 px-2 py-2">
+        <button
+          onClick={onEnterLiteMode}
+          className="px-2.5 py-1 text-xs font-mono rounded bg-white text-black font-bold"
+        >
+          Lite
+        </button>
         {(['calendar', 'storyboard', 'cadence', 'benchmarks', 'storage'] as StudioTab[]).map((tab) => (
           <button
             key={tab}

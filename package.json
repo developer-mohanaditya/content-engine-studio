@@ -8,6 +8,7 @@
     "start": "next start -p 3005"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
     "autoprefixer": "^10.4.20",
     "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",
